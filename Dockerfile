@@ -12,3 +12,5 @@ COPY . .
 EXPOSE 5000
 
 CMD ["node", "server.js"]
+
+LABEL org.opencontainers.image.source="https://github.com/TsiryNajoro/fixbook-back"
