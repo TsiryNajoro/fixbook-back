@@ -1,0 +1,27 @@
+name: Trigger n8n Deployment for fixbook-back
+
+on:
+  registry_package:
+    types: [published]
+
+concurrency:
+  group: deploy-back
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.registry_package.package_version.container_metadata.tag.name != ''
+    runs-on: self-hosted
+
+    steps:
+      - name: Send webhook to n8n
+        run: |
+          TAG="${{ github.event.registry_package.package_version.container_metadata.tag.name }}"
+
+          echo "Deployment of fixbook-back, tag : $TAG"
+
+          curl -X POST http://localhost:5678/webhook/deploy-fixbook \
+            -H "Content-Type: application/json" \
+            -d "{\"service\":\"back\",\"tag\":\"$TAG\"}"
+
+          echo "Webhook sent to n8n"
