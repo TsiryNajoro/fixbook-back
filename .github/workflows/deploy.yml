@@ -19,13 +19,15 @@ jobs:
           TAG="${{ github.event.registry_package.package_version.container_metadata.tag.name }}"
           REPOSITORY="ghcr.io/${{ github.repository }}-preprod"
           IMAGE="${REPOSITORY}:${TAG}"
+          SERVICE="preprod"
 
           echo "Deployment image: $IMAGE"
           echo "Repository: $REPOSITORY"
+          echo "Service: $SERVICE"
+          echo "Tag: $TAG"
 
           curl -X POST http://localhost:5678/webhook/deploy-fixbook \
             -H "Content-Type: application/json" \
-            -d "{\"image\":\"$IMAGE\",\"repository\":\"$REPOSITORY\"}"
+            -d "{\"service\":\"$SERVICE\",\"image\":\"$IMAGE\",\"repository\":\"$REPOSITORY\",\"tag\":\"$TAG\"}"
 
           echo "Webhook sent to n8n"
-
