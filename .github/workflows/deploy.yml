@@ -1,11 +1,11 @@
-name: Trigger n8n Deployment for fixbook-back
+name: Trigger n8n Deployment for fixbook-back-preprod
 
 on:
   registry_package:
     types: [published]
 
 concurrency:
-  group: deploy-back
+  group: deploy-fixbook-back-preprod
   cancel-in-progress: false
 
 jobs:
@@ -17,11 +17,15 @@ jobs:
       - name: Send webhook to n8n
         run: |
           TAG="${{ github.event.registry_package.package_version.container_metadata.tag.name }}"
+          REPOSITORY="ghcr.io/${{ github.repository }}-preprod"
+          IMAGE="${REPOSITORY}:${TAG}"
 
-          echo "Deployment of fixbook-back, tag : $TAG"
+          echo "Deployment image: $IMAGE"
+          echo "Repository: $REPOSITORY"
 
           curl -X POST http://localhost:5678/webhook/deploy-fixbook \
             -H "Content-Type: application/json" \
-            -d "{\"service\":\"back\",\"tag\":\"$TAG\"}"
+            -d "{\"image\":\"$IMAGE\",\"repository\":\"$REPOSITORY\"}"
 
           echo "Webhook sent to n8n"
+
