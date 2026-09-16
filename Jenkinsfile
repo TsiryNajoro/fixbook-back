@@ -7,6 +7,20 @@ pipeline {
 
     stages {
 
+        stage('Gitleaks Current') {
+            steps {
+                sh '''
+                docker run --rm \
+                -v jenkins_home:/var/jenkins_home:ro \
+                zricethezav/gitleaks:latest \
+                detect \
+                --source="$WORKSPACE" \
+                --no-git \
+                --no-banner
+                '''
+            }
+        }
+
         stage('Gitleaks History') {
             steps {
                 sh '''
