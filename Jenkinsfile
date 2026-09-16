@@ -7,6 +7,7 @@ pipeline {
 
     stages {
 
+
         stage('Gitleaks Current') {
             steps {
                 sh '''
