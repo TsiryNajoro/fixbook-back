@@ -1,37 +1,21 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "ghcr.io/tsirynajoro/fixbook-back"
-    }
-
     stages {
 
-        stage('Build Docker Image') {
+        stage('Test Gitleaks History') {
             steps {
                 sh '''
-                docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                echo "Workspace Jenkins : $WORKSPACE"
+
+                docker run --rm \
+                  -v jenkins_home:/var/jenkins_home \
+                  zricethezav/gitleaks:latest \
+                  git "$WORKSPACE" \
+                  --report-format=json \
+                  --report-path="$WORKSPACE/gitleaks-history.json" \
+                  --no-banner
                 '''
-            }
-        }
-
-        stage('Publish Docker Image') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'ghcr-token',
-                        usernameVariable: 'GH_USER',
-                        passwordVariable: 'GH_TOKEN'
-                    )
-                ]) {
-                    sh '''
-                    echo $GH_TOKEN | docker login ghcr.io -u $GH_USER --password-stdin
-
-                    docker push ${IMAGE_NAME}:${BUILD_NUMBER}
-
-                    docker logout ghcr.io
-                    '''
-                }
             }
         }
 
