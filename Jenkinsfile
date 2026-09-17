@@ -45,6 +45,7 @@ pipeline {
             steps {
                 sh '''
                 docker run --rm \
+                -v trivy-cache:/root/.cache/trivy \
                 -v /var/run/docker.sock:/var/run/docker.sock \
                 aquasec/trivy:latest \
                 image \
@@ -53,7 +54,7 @@ pipeline {
                 ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
             }
-        }        
+        }       
 
         stage('Publish Docker Image') {
             steps {
