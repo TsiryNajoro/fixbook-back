@@ -52,6 +52,14 @@ pipeline {
             }
         }         
 
+        stage('NPM Audit') {
+            steps {
+                sh '''
+                npm audit --omit=dev
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh '''
