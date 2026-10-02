@@ -55,11 +55,11 @@ pipeline {
         stage('NPM Audit') {
             steps {
                 sh '''
-                echo "Files in workspace:"
-                ls -la
-
-                echo "Lockfile:"
-                ls -l package-lock.json
+                docker run --rm \
+                -v "$WORKSPACE:/app" \
+                -w /app \
+                node:24-alpine \
+                sh -c 'ls -l package.json package-lock.json && npm audit --omit=dev'
                 '''
             }
         }
