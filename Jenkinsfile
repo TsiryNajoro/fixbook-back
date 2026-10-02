@@ -56,10 +56,10 @@ pipeline {
             steps {
                 sh '''
                 docker run --rm \
-                -v "$WORKSPACE:/app" \
-                -w /app \
+                -v jenkins_home:/jenkins_home:ro \
+                -w /jenkins_home/workspace/fixbook-back-ci \
                 node:24-alpine \
-                sh -c 'ls -l package.json package-lock.json && npm audit --omit=dev'
+                npm audit --omit=dev
                 '''
             }
         }
