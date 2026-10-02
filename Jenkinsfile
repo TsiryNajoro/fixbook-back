@@ -55,6 +55,10 @@ pipeline {
         stage('NPM Audit') {
             steps {
                 sh '''
+                docker run --rm \
+                -v "$WORKSPACE:/app" \
+                -w /app \
+                node:24-alpine \
                 npm audit --omit=dev
                 '''
             }
