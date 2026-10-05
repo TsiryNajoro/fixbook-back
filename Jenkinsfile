@@ -112,7 +112,11 @@ pipeline {
                 withCredentials([
                     file(credentialsId: 'cosign-key', variable: 'COSIGN_KEY'),
                     string(credentialsId: 'cosign-password', variable: 'COSIGN_PASSWORD'),
-                    usernamePassword(credentialsId: 'ghcr-token', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')
+                    usernamePassword(
+                        credentialsId: 'ghcr-token',
+                        usernameVariable: 'GH_USER',
+                        passwordVariable: 'GH_TOKEN'
+                    )
                 ]) {
                     sh '''
                     DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${BUILD_NUMBER} | cut -d@ -f2)
@@ -120,6 +124,7 @@ pipeline {
                     COSIGN_KEY_CONTAINER="/jenkins_home${COSIGN_KEY#/var/jenkins_home}"
 
                     docker run --rm \
+                    --user 0:0 \
                     -e COSIGN_PASSWORD \
                     -v jenkins_home:/jenkins_home:ro \
                     ghcr.io/sigstore/cosign/cosign:v3.0.2 \
