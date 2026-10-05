@@ -110,19 +110,9 @@ pipeline {
         stage('Cosign Sign') {
             steps {
                 withCredentials([
-                    file(
-                        credentialsId: 'cosign-key',
-                        variable: 'COSIGN_KEY'
-                    ),
-                    string(
-                        credentialsId: 'cosign-password',
-                        variable: 'COSIGN_PASSWORD'
-                    ),
-                    usernamePassword(
-                        credentialsId: 'ghcr-token',
-                        usernameVariable: 'GH_USER',
-                        passwordVariable: 'GH_TOKEN'
-                    )
+                    file(credentialsId: 'cosign-key', variable: 'COSIGN_KEY'),
+                    string(credentialsId: 'cosign-password', variable: 'COSIGN_PASSWORD'),
+                    usernamePassword(credentialsId: 'ghcr-token', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')
                 ]) {
                     sh '''
                     DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${BUILD_NUMBER} | cut -d@ -f2)
@@ -142,5 +132,6 @@ pipeline {
                 }
             }
         }
+
     }
 }
