@@ -127,15 +127,12 @@ pipeline {
                     sh '''
                     DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${BUILD_NUMBER} | cut -d@ -f2)
 
-                    KEY_DIR=$(dirname "$COSIGN_KEY")
-                    KEY_FILE=$(basename "$COSIGN_KEY")
-
                     docker run --rm \
                     -e COSIGN_PASSWORD \
-                    -v "$KEY_DIR:/keys:ro" \
+                    -v jenkins_home:/jenkins_home:ro \
                     ghcr.io/sigstore/cosign/cosign:v3.0.2 \
                     sign \
-                    --key "/keys/$KEY_FILE" \
+                    --key "$COSIGN_KEY" \
                     --registry-username "$GH_USER" \
                     --registry-password "$GH_TOKEN" \
                     ${IMAGE_NAME}@${DIGEST}
