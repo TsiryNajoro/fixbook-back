@@ -113,36 +113,11 @@ pipeline {
                     file(
                         credentialsId: 'cosign-key',
                         variable: 'COSIGN_KEY'
-                    ),
-                    string(
-                        credentialsId: 'cosign-password',
-                        variable: 'COSIGN_PASSWORD'
-                    ),
-                    usernamePassword(
-                        credentialsId: 'ghcr-token',
-                        usernameVariable: 'GH_USER',
-                        passwordVariable: 'GH_TOKEN'
                     )
                 ]) {
                     sh '''
-                    set -e
-
-                    cp "$COSIGN_KEY" "$WORKSPACE/cosign.key"
-                    chmod 600 "$WORKSPACE/cosign.key"
-
-                    DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${BUILD_NUMBER} | cut -d@ -f2)
-
-                    docker run --rm \
-                    -e COSIGN_PASSWORD \
-                    -v "$WORKSPACE:/workspace:ro" \
-                    ghcr.io/sigstore/cosign/cosign:v3.0.2 \
-                    sign \
-                    --key /workspace/cosign.key \
-                    --registry-username "$GH_USER" \
-                    --registry-password "$GH_TOKEN" \
-                    ${IMAGE_NAME}@${DIGEST}
-
-                    rm -f "$WORKSPACE/cosign.key"
+                    echo "Chemin Jenkins de la clé : $COSIGN_KEY"
+                    ls -l "$COSIGN_KEY"
                     '''
                 }
             }
