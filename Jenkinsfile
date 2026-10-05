@@ -125,21 +125,27 @@ pipeline {
                     )
                 ]) {
                     sh '''
+                    set -e
+
+                    cp "$COSIGN_KEY" "$WORKSPACE/cosign.key"
+                    chmod 600 "$WORKSPACE/cosign.key"
+
                     DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${BUILD_NUMBER} | cut -d@ -f2)
 
                     docker run --rm \
                     -e COSIGN_PASSWORD \
-                    -v jenkins_home:/jenkins_home:ro \
+                    -v "$WORKSPACE:/workspace:ro" \
                     ghcr.io/sigstore/cosign/cosign:v3.0.2 \
                     sign \
-                    --key "$COSIGN_KEY" \
+                    --key /workspace/cosign.key \
                     --registry-username "$GH_USER" \
                     --registry-password "$GH_TOKEN" \
                     ${IMAGE_NAME}@${DIGEST}
+
+                    rm -f "$WORKSPACE/cosign.key"
                     '''
                 }
             }
         }
-
     }
 }
