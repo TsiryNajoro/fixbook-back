@@ -107,5 +107,39 @@ pipeline {
             }
         }
 
+        stage('Cosign Sign') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'cosign-key',
+                        variable: 'COSIGN_KEY'
+                    ),
+                    string(
+                        credentialsId: 'cosign-password',
+                        variable: 'COSIGN_PASSWORD'
+                    ),
+                    usernamePassword(
+                        credentialsId: 'ghcr-token',
+                        usernameVariable: 'GH_USER',
+                        passwordVariable: 'GH_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                    DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${IMAGE_NAME}:${BUILD_NUMBER} | cut -d@ -f2)
+
+                    docker run --rm \
+                    -e COSIGN_PASSWORD \
+                    -v "$COSIGN_KEY:/cosign.key:ro" \
+                    ghcr.io/sigstore/cosign/cosign:v3.0.2 \
+                    sign \
+                    --key /cosign.key \
+                    --registry-username "$GH_USER" \
+                    --registry-password "$GH_TOKEN" \
+                    ${IMAGE_NAME}@${DIGEST}
+                    '''
+                }
+            }
+        }
+
     }
 }
