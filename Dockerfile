@@ -1,41 +1,25 @@
-ARG NODE_VERSION=24.21.0
-ARG ALPINE_VERSION=3.24
-
-FROM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS builder
-
-WORKDIR /build-stage
-
+# --- Etape 1 : dependances de production uniquement ---
+FROM node:24-alpine AS deps
+WORKDIR /build
 COPY package*.json ./
-
 RUN npm ci --omit=dev
 
-COPY . .
+# --- Etape 2 : image finale ---
+FROM node:24-alpine
 
+# Correctifs de securite de l'image de base + init minimal (gestion propre des signaux)
+RUN apk upgrade --no-cache \
+    && apk add --no-cache dumb-init
 
-FROM alpine:${ALPINE_VERSION}
-
+ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
-RUN apk update \
-    && apk upgrade \
-    && apk add --no-cache \
-        libstdc++ \
-        dumb-init \
-    && addgroup -g 1000 node \
-    && adduser -u 1000 -G node -s /bin/sh -D node \
-    && chown node:node /usr/src/app
-
-COPY --from=builder /usr/local/bin/node /usr/local/bin/
-COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin/
-
-ENTRYPOINT ["docker-entrypoint.sh"]
+# L'utilisateur "node" (uid 1000) existe deja dans l'image officielle
+COPY --from=deps --chown=node:node /build/node_modules ./node_modules
+COPY --chown=node:node server.js ./server.js
+COPY --chown=node:node src ./src
 
 USER node
-
-COPY --from=builder /build-stage/node_modules ./node_modules
-COPY --from=builder /build-stage/server.js ./server.js
-COPY --from=builder /build-stage/src ./src
-
 EXPOSE 5000
 
 CMD ["dumb-init", "node", "server.js"]
