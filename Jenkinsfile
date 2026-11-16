@@ -159,7 +159,7 @@ pipeline {
 
                         echo output
 
-                        def match = (output =~ /The next release version is (\d+\.\d+\.\d+)/)
+                        def match = (output =~ /next release version is (\d+\.\d+\.\d+)/)
 
                         if (match.find()) {
                             env.RELEASE_VERSION = "v${match.group(1)}"
