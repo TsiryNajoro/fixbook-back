@@ -9,7 +9,8 @@ FROM node:24-alpine
 
 # Correctifs de securite de l'image de base + init minimal (gestion propre des signaux)
 RUN apk upgrade --no-cache \
-    && apk add --no-cache dumb-init
+    && apk add --no-cache dumb-init \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
