@@ -9,6 +9,8 @@ const notificationRoutes = require('./src/routes/notification.routes');
 
 const app = express();
 
+app.disable('x-powered-by');
+
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 app.use(express.json());
 app.use(passport.initialize());
