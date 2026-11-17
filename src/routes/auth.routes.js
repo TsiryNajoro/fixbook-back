@@ -6,6 +6,12 @@ const { signToken, requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Every field read from req.body must be a string. An object such as
+// {"$ne": null} would otherwise reach Mongoose or bcrypt (NoSQL injection /
+// type confusion) and end in a 500 that leaks an internal message.
+const isString = (value) => typeof value === 'string';
+const isOptionalString = (value) => value === undefined || value === null || isString(value);
+
 // ---------- Basic email/password auth ----------
 // Used alongside OAuth so a team can onboard even before Google/Microsoft
 // SSO is configured, or for accounts that just prefer a password.
@@ -15,6 +21,9 @@ router.post('/register', async (req, res) => {
     const { name, email, password, companyName, department } = req.body;
     if (!name || !email || !password || !companyName) {
       return res.status(400).json({ error: 'name, email, password, companyName are required' });
+    }
+    if (![name, email, password, companyName].every(isString) || !isOptionalString(department)) {
+      return res.status(400).json({ error: 'name, email, password, companyName and department must be strings' });
     }
     const domain = email.split('@')[1]?.toLowerCase();
     if (!domain) return res.status(400).json({ error: 'Invalid email' });
@@ -42,6 +51,9 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password are required' });
+    if (!isString(email) || !isString(password)) {
+      return res.status(400).json({ error: 'email and password must be strings' });
+    }
 
     const domain = email.split('@')[1]?.toLowerCase();
     const company = await Company.findOne({ domain });
@@ -66,6 +78,15 @@ router.get('/me', requireAuth, (req, res) => {
 router.put('/me', requireAuth, async (req, res) => {
   try {
     const { name, department, avatarUrl } = req.body;
+    if (name !== undefined && !isString(name)) {
+      return res.status(400).json({ error: 'name must be a string' });
+    }
+    if (!isOptionalString(department)) {
+      return res.status(400).json({ error: 'department must be a string or undefined' });
+    }
+    if (!isOptionalString(avatarUrl)) { 
+      return res.status(400).json({ error: 'avatarUrl must be a string' });
+    }
     if (name !== undefined) req.user.name = name;
     if (department !== undefined) req.user.department = department;
     if (avatarUrl !== undefined) req.user.avatarUrl = avatarUrl;
