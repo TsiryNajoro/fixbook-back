@@ -2,15 +2,20 @@ const express = require('express');
 const Problem = require('../models/Problem');
 const Notification = require('../models/Notification');
 const { requireAuth } = require('../middleware/auth');
+const asyncHandler = require('../utils/asyncHandler');
+const validateObjectIdParam = require('../middleware/validateObjectId');
 const { serializeProblem } = require('../utils/lifecycle');
 
 const router = express.Router();
 router.use(requireAuth); // every route below requires a logged-in user
+router.param('id', validateObjectIdParam);
+router.param('validationId', validateObjectIdParam);
+router.param('commentId', validateObjectIdParam);
 
 // ---------- List / search ----------
 // GET /api/problems?q=connection+refused&category=Backend&status=verified&tag=docker
 // GET /api/problems?mine=true  -> only my own entries (drafts included) - "My Entries"
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   try {
     const { q, category, tag, status, mine } = req.query;
     const filter = { company: req.companyId };
@@ -44,12 +49,13 @@ router.get('/', async (req, res) => {
 
     res.json({ problems: serialized });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 // ---------- Get one ----------
-router.get('/:id', async (req, res) => {
+router.get('/:id', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId })
     .populate('author', 'name email department')
     .populate('solution.author', 'name email department')
@@ -64,13 +70,13 @@ router.get('/:id', async (req, res) => {
   }
 
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Create ----------
 // isDraft: true saves it privately under "My Entries" without requiring
 // description/logs yet. Anything else (the normal "Log it" action) publishes
 // immediately and requires description + logs.
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   try {
     const { title, description, category, application, environment, logs, tags, occurredAt, isDraft } = req.body;
     const saveAsDraft = Boolean(isDraft);
@@ -100,12 +106,13 @@ router.post('/', async (req, res) => {
     });
     res.status(201).json({ problem: serializeProblem(problem) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 // ---------- Publish a draft (the "Log it" action for a saved draft) ----------
-router.post('/:id/publish', async (req, res) => {
+router.post('/:id/publish', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
   if (String(problem.author) !== String(req.user._id)) {
@@ -118,10 +125,10 @@ router.post('/:id/publish', async (req, res) => {
   problem.updatedAt = new Date();
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Edit problem fields ----------
-router.put('/:id', async (req, res) => {
+router.put('/:id', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
@@ -132,10 +139,10 @@ router.put('/:id', async (req, res) => {
   problem.updatedAt = new Date();
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Delete ----------
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
   if (String(problem.author) !== String(req.user._id)) {
@@ -143,10 +150,10 @@ router.delete('/:id', async (req, res) => {
   }
   await problem.deleteOne();
   res.json({ ok: true });
-});
+}));
 
 // ---------- Add / update the solution (direct fix + troubleshooting steps) ----------
-router.put('/:id/solution', async (req, res) => {
+router.put('/:id/solution', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
@@ -161,10 +168,10 @@ router.put('/:id/solution', async (req, res) => {
 
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Delete the solution ----------
-router.delete('/:id/solution', async (req, res) => {
+router.delete('/:id/solution', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
   if (String(problem.author) !== String(req.user._id)) {
@@ -174,14 +181,14 @@ router.delete('/:id/solution', async (req, res) => {
   problem.updatedAt = new Date();
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Validate a solution ----------
 // A validation is a department-stamped confirmation, not an anonymous
 // upvote: "T. Jakob - Database Admin" confirms this fix worked for them.
 // It targets the SOLUTION specifically, not the entry: you can validate an
 // entry you logged yourself, as long as someone else (not you) wrote the fix.
-router.post('/:id/validations', async (req, res) => {
+router.post('/:id/validations', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
   if (!problem.solution || (!problem.solution.description && problem.solution.troubleshootingSteps.length === 0)) {
@@ -230,9 +237,9 @@ router.post('/:id/validations', async (req, res) => {
   }
 
   res.status(201).json({ problem: serializeProblem(problem) });
-});
+}));
 
-router.delete('/:id/validations/:validationId', async (req, res) => {
+router.delete('/:id/validations/:validationId', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
@@ -244,13 +251,13 @@ router.delete('/:id/validations/:validationId', async (req, res) => {
   validation.deleteOne();
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Comments ----------
 // General discussion, independent of validation - anyone can comment any
 // time, whether or not they've validated the solution. parentId makes it a
 // reply, which notifies the parent comment's author instead of the entry's.
-router.post('/:id/comments', async (req, res) => {
+router.post('/:id/comments', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
@@ -285,9 +292,9 @@ router.post('/:id/comments', async (req, res) => {
   }
 
   res.status(201).json({ problem: serializeProblem(problem) });
-});
+}));
 
-router.delete('/:id/comments/:commentId', async (req, res) => {
+router.delete('/:id/comments/:commentId', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
 
@@ -299,10 +306,10 @@ router.delete('/:id/comments/:commentId', async (req, res) => {
   comment.deleteOne();
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 // ---------- Archive (the one manual lifecycle transition, author-only) ----------
-router.post('/:id/archive', async (req, res) => {
+router.post('/:id/archive', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
   if (String(problem.author) !== String(req.user._id)) {
@@ -313,9 +320,9 @@ router.post('/:id/archive', async (req, res) => {
   problem.archiveReason = req.body.reason || '';
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
-router.post('/:id/unarchive', async (req, res) => {
+router.post('/:id/unarchive', asyncHandler(async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id, company: req.companyId });
   if (!problem) return res.status(404).json({ error: 'Problem not found' });
   if (String(problem.author) !== String(req.user._id)) {
@@ -325,6 +332,6 @@ router.post('/:id/unarchive', async (req, res) => {
   problem.archivedBy = null;
   await problem.save();
   res.json({ problem: serializeProblem(problem) });
-});
+}));
 
 module.exports = router;
