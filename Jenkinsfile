@@ -103,12 +103,21 @@ pipeline {
             }
         }
 
-        stage('Tests') {
+        stage('Unit Tests') {
             options { timeout(time: 10, unit: 'MINUTES') }
 
             steps {
-                // Tests dans un conteneur Node, contre un MongoDB jetable : voir scripts/test.sh
-                sh 'sh scripts/test.sh'
+                // Tests sans MongoDB ; le runner partage la configuration avec l'execution locale.
+                sh 'sh scripts/test.sh unit'
+            }
+        }
+
+        stage('Integration Tests') {
+            options { timeout(time: 10, unit: 'MINUTES') }
+
+            steps {
+                // MongoDB jetable et cleanup par trap, y compris si les tests echouent.
+                sh 'sh scripts/test.sh integration'
             }
         }
 
