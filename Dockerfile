@@ -18,6 +18,7 @@ WORKDIR /usr/src/app
 # L'utilisateur "node" (uid 1000) existe deja dans l'image officielle
 COPY --from=deps --chown=node:node /build/node_modules ./node_modules
 COPY --chown=node:node server.js ./server.js
+COPY --chown=node:node app.js ./app.js
 COPY --chown=node:node src ./src
 
 USER node
